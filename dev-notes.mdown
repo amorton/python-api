@@ -1,0 +1,105 @@
+# Approach
+
+1. using the httplib2 library http://code.google.com/p/httplib2 it's code and 
+the code for the socket library is uses for proxy is included in 
+shotgun_json.py. The module supports keep alive.
+
+2. I did not pull the code for simplejson into shotgun_json.py as it's pretty 
+big. It's included in the code base until we make a decision about how to 
+handle it.
+
+3. I enabled TCP_NODELAY on the sockets created in httplib2 
+http://code.google.com/p/httplib2/issues/detail?id=28 
+
+4. The general path for a request is:
+  * public api function liek create() builds the params and calls _call_rpc()
+  * _call_rpc() transforms data formats, builds the payload and encodes it for 
+    transport the calls _make_call(). 
+  * _make_call() uses _http_request() to make the actual http call and handles 
+    errors and retries. 
+  * _http_request() gets the connection and uses the http library to call the 
+    server.
+  * everything returns to _make_call() which checks the http status code, 
+    decodes the response, checks for api errors, transforms data types and 
+    returns data to the caller.  
+    
+5. The library used for the http communication can be changed by modifying 
+_get_connection(), _close_connection() and _http_request()
+
+6. The signature for ShotgunClient __init__() and all of the api methods 
+should be the same as the previous version. 
+
+7. I've packaged up the ClientCapabilities, ServerCapabilities and client 
+Configuration into classes just to be tidy. If they break backwards 
+compatibility we can merge them back into the main client. 
+ 
+# Tests
+
+
+1. tests/config.py contains the config for the tests. Tests can either use a mock
+SG server or run against a live server. Config contains this switch, the 
+server login info and the ID's of the entities to manipulate. 
+
+2. tests/test_client.py tests the ShotgunClient without making API calls. 
+Tests things like error retry, data transformations etc. It always uses a 
+mock SG server.
+
+3. tests/test_api.py tests the ShotgunClient by making API calls. It can run 
+against either the a mock server or a  live one. 
+
+4. tests/base.py holds the base class for the unit tests, including the logic 
+for mocking the http requests. The mock.py module is pulled from the 
+http://pypi.python.org/pypi/mock , it's used to replace the function used to 
+create a http connection, the http connection and the one function that makes 
+http requests. Tests call TestBase._mock_http() to fake a call to the server.
+
+5. I used nosetests as the test runner 
+http://somethingaboutorange.com/mrl/projects/nose/1.0.0/ and installed the 
+code coverage module http://pypi.python.org/pypi/coverage For the code I wrote 
+coverage is > 95% (hard to tell with all the other code pulled in)
+
+6. My tests were run on OSX 10.6 with python 2.6 and unbuntu 10.04 with python 
+2.6.5, 2.5.5 and 2.4.6. The file run-tests cleans the dev folder and runs the 
+tests with coverage without picking a version, the files run-tests-2.4 and 
+run-tests-2.5 pick a specific install version. 
+
+My Ubuntu environment was set up by:
+
+* Installing the prerequisites here  http://www.saltycrane.com/blog/2008/10/installing-python-26-source-ubuntu-hardy/
+* wget http://www.python.org/ftp/python/2.5.5/Python-2.4.6.tgz
+* ./configure --prefix=/usr/local/python2.4
+* make && make test && sudo make install
+* Installing setuptools into each env as described here http://pypi.python.org/pypi/setuptools
+* Installing nosetests into each env by using the version specific 
+  easy_install e.g. sudo easy_install-2.5 nose
+  
+# Issues
+
+1. return_fields for create() is ignored by the server.
+
+2. Slightly confused about the proxy support in the existing client. I've 
+implemented http proxy using httplib2 see 
+http://code.google.com/p/httplib2/wiki/Examples
+
+3. Could not make the old api function _get_session_token() to work through 
+the json api. 
+
+4. download_attachment() is not working because of issue 3. I did notice that 
+the download path was /file_serve/X not /file_serve/attachment/X, but the 
+former gives me a login page. 
+
+5. upload_attachment() has been manually tested, but does not have automated 
+testing. Was waiting to do it with download_attachment()
+
+6. Have not been able to manually see set_session_uuid() work as I could not 
+see where the browser session UUID was. 
+
+7. tests/test_api.test_automated_find() had an issue calling read/find rpc
+method for "Asset", "Task", "Shot", "Attachment" types. Here is an example...
+
+    shotgun_json: DEBUG: Request headers are {'connection': 'keep-alive', 'content-type': 'application/json; charset=utf-8', 'user-agent': 'shotgun-json'}
+    shotgun_json: DEBUG: Request body is {"method_name": "read", "params": [{"script_key": "58cd227db85916c8e38c4f306e41e25cdefe3868", "script_name": "amorton"}, {"return_paging_info": false, "return_fields": ["open_notes_count", "code", "step_11", "step_10", "mocap_takes", "step_12", "image", "updated_at", "tasks", "sequences", "id", "updated_by", "open_notes", "task_template", "created_by", "parents", "sg_status_list", "description", "addressings_cc", "shoot_days", "step_0", "sg_asset_type", "assets", "step_9", "notes", "project", "shots", "tag_list", "created_at"], "return_only": "active", "paging": {"current_page": 1, "entities_per_page": 5}, "filters": {"logical_operator": "or", "conditions": [{"path": "project", "values": [{"type": "Project", "id": 4}], "relation": "is"}]}, "sorts": [{"direction": "desc", "field_name": "open_notes_count"}], "type": "Asset"}]}
+    shotgun_json: DEBUG: Response status is 200 OK
+    shotgun_json: DEBUG: Response headers are {'status': '200 OK', 'content-length': '133', 'expires': 'Sun, 22 May 2011 05:17:31 GMT', 'server': 'Apache/2.2.3 (CentOS)', 'connection': 'close', 'cache-control': 'no-cache, max-age=2592000', 'date': 'Fri, 22 Apr 2011 05:17:31 GMT', 'content-type': 'application/json; charset=utf-8'}
+    shotgun_json: DEBUG: Response body is {"message":"API read() CRUD ERROR #10: Read failed for entity type [Asset]: undefined method `[]' for nil:NilClass","exception":true}
+
