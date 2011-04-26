@@ -140,7 +140,7 @@ class Shotgun(object):
 
     # reg ex from 
     # http://underground.infovark.com/2008/07/22/iso-date-validation-regex/
-
+    # Note a length check is done before checking the reg ex
     _DATE_PATTERN = re.compile(
         "^(\d{4})\D?(0[1-9]|1[0-2])\D?([12]\d|0[1-9]|3[01])$")
     _DATE_TIME_PATTERN = re.compile(
@@ -946,11 +946,12 @@ class Shotgun(object):
             if isinstance(value, datetime.datetime):
                 if _change_tz:
                     value = _change_tz(value)
-                return value.strftime("%Y%m%dT%H:%M:%S")
+                
+                return value.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             if isinstance(value, datetime.date):
-                #existing code did not tx transform dates. 
-                return value.strftime("%Y%m%d")
+                #existing code did not tz transform dates. 
+                return value.strftime("%Y-%m-%d")
 
             if isinstance(value, datetime.time):
                 value = local_now.replace(hour=value.hour, 
@@ -958,7 +959,7 @@ class Shotgun(object):
                     microsecond=value.microsecond)
                 if _change_tz:
                     value = _change_tz(value)
-                return value.strftime("%Y%m%dT%H:%M:%S")
+                return value.strftime("%Y-%m-%dT%H:%M:%SZ")
             
             return value
             
@@ -980,26 +981,25 @@ class Shotgun(object):
         
         def _inbound_visitor(value):
             if isinstance(value, basestring):
-                #check for dates, no utz transform
-                if len(value) == 8 and self._DATE_PATTERN.match(value):
-                    try:
-                        # strptime was not on datetime in python2.4
-                        return datetime.datetime(
-                            *time.strptime(value, "%Y%m%d")[:6]).date()
-                    except ValueError:
-                        return value
-                
-                if len(value) == 17 and self._DATE_TIME_PATTERN.match(value):
+                if len(value) >= 19 and self._DATE_TIME_PATTERN.match(value):
                     try:
                         # strptime was not on datetime in python2.4
                         value = datetime.datetime(
-                            *time.strptime(value, "%Y%m%dT%H:%M:%S")[:6])
+                            *time.strptime(value, "%Y-%m-%dT%H:%M:%SZ")[:6])
                     except ValueError:
                         return value
                     if _change_tz:
                         return _change_tz(value)
                     return value
 
+                #check for dates, no utz transform
+                if len(value) >= 10 and self._DATE_PATTERN.match(value):
+                    try:
+                        # strptime was not on datetime in python2.4
+                        return datetime.datetime(
+                            *time.strptime(value, "%Y-%m-%d")[:6]).date()
+                    except ValueError:
+                        return value
             return value
 
         return self._visit_data(data, _inbound_visitor)

@@ -234,21 +234,27 @@ class TestShotgunClient(base.TestBase):
             return datetime.datetime(*time.strptime(s, f)[:6])
             
         def assert_wire(wire, match):
-            d = _datetime(wire["date"], "%Y%m%d").date()
+            self.assertTrue(isinstance(wire["date"], basestring))
+            d = _datetime(wire["date"], "%Y-%m-%d").date()
             self.assertEqual(match["date"], d)
-            d = _datetime(wire["datetime"], "%Y%m%dT%H:%M:%S")
+            self.assertTrue(isinstance(wire["datetime"], basestring))
+            d = _datetime(wire["datetime"], "%Y-%m-%dT%H:%M:%SZ")
             self.assertEqual(match["datetime"], d)
-            d = _datetime(wire["time"], "%Y%m%dT%H:%M:%S")
+            self.assertTrue(isinstance(wire["time"], basestring))
+            d = _datetime(wire["time"], "%Y-%m-%dT%H:%M:%SZ")
             self.assertEqual(match["time"], d.time())
             
         #leave as local
-        self.sg.config.convert_datetimes_to_utc = False
-        wire = self.sg._transform_outbound(local)
-        assert_wire(wire, local)
-        wire = self.sg._transform_inbound(wire)
-        #times will become datetime over the wire
-        wire["time"] = wire["time"].time()
-        self.assertEqual(local, wire)
+        #AMORTON: tests disabled for now, always have utc over the wire
+        # self.sg.config.convert_datetimes_to_utc = False
+        # wire = self.sg._transform_outbound(local)
+        # print "local ", local
+        # print "wire ", wire
+        # assert_wire(wire, local)
+        # wire = self.sg._transform_inbound(wire)
+        # #times will become datetime over the wire
+        # wire["time"] = wire["time"].time()
+        # self.assertEqual(local, wire)
         
         self.sg.config.convert_datetimes_to_utc = True
         wire = self.sg._transform_outbound(local)
@@ -323,7 +329,6 @@ class TestShotgunClient(base.TestBase):
         
         self.assertEqual(url, modified["image"], 
             "image path changed to url path")
-        print modified
         self.assertEqual("/foo/bar.jpg", modified["foo"]["local_path"])
         self.assertEqual("file://foo/bar.jpg", modified["foo"]["url"])
         
