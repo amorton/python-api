@@ -5,6 +5,7 @@ test_api_long for other tests.
 """
 
 import datetime
+import os
 import sys
 import time
 import unittest
@@ -37,13 +38,40 @@ class TestShotgunApi(base.TestBase):
             'project': { 'type': 'Project', 'id': config.PROJECT_ID },
             'start_date': datetime.date.today(),
         }
+        self._mock_http({
+            "results" : {
+                "start_date" : "2011-04-27",
+                "project" : {
+                    "name" : "Demo Project",
+                    "type" : "Project",
+                    "id" : 4
+                },
+                "type" : "Task",
+                "sg_status_list" : "wtg",
+                "id" : 197,
+                "content" : "New Task"
+            }
+        })
         newtask = self.sg.create('Task', t, ['content', 'sg_status_list'])
 
         t = {
             'project': { 'type': 'Project', 'id': config.PROJECT_ID },
             'sg_test_time': datetime.datetime.now(),
         }
-
+        self._mock_http({
+            "results" : {
+                "project" : {
+                    "name" : "Demo Project",
+                    "type" : "Project",
+                    "id" : 4
+                },
+                "type" : "Task",
+                "sg_status_list" : "wtg",
+                "id" : 198,
+                "content" : "New Task",
+                "sg_test_time" : "2011-04-27T01:13:00Z"
+            }
+        })
         newtask = self.sg.create('Task', t, ['content', 'sg_status_list'])
         
         return
@@ -142,6 +170,51 @@ class TestShotgunApi(base.TestBase):
         version = self.sg.find_one("Version", filters, fields=fields)
         self.assertEqual("Version", version["type"])
         self.assertEqual(config.VERSION_ID, version["id"])
+        
+    def test_get_session_token(self):
+        """Got session UUID"""
+        
+        uuid = "c6b57a9e207d13c74e6226eaba5eab77"
+        self._mock_http(
+            {"session_id" : uuid}
+        )
+        
+        rv = self.sg._get_session_token()
+        #we only know what the value is if we mocked the repsonse
+        if self.is_mock:
+            self.assertEqual(uuid, rv)
+        self.assertTrue(rv)
+        return
+    
+    def test_upload_download(self):
+        """Upload and download a thumbnail"""
+        
+        #upload / download only works against a live server becuase it does 
+        #not use the standard http interface
+        if self.is_mock:
+            print "upload / down tests skipped when mock enabled."
+            return
+        
+        this_dir, _ = os.path.split(__file__)
+        path = os.path.abspath(os.path.expanduser(
+            os.path.join(this_dir,"sg_logo.jpg")))
+        size = os.stat(path).st_size
+        
+        attach_id = self.sg.upload_thumbnail("Version", 
+            config.VERSION_ID, path, 
+            tag_list="monkeys, everywhere, send, help")
+
+        attach_id = self.sg.upload_thumbnail("Version", 
+            config.VERSION_ID, path, 
+            tag_list="monkeys, everywhere, send, help")
+            
+        attach_file = self.sg.download_attachment(attach_id)
+        self.assertTrue(attach_file is not None)
+        self.assertEqual(size, len(attach_file))
+        
+        orig_file = open(path, "rb").read()
+        self.assertEqual(orig_file, attach_file)
+        return
         
     def test_deprecated_functions(self):
         """Deprecated functions raise errors"""

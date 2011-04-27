@@ -14,6 +14,7 @@ class TestBase(unittest.TestCase):
     
     def setUp(self):
         
+        self.is_mock = False
         self.sg = api.Shotgun(config.server_url, config.script_name, 
             config.api_key, http_proxy=config.http_proxy)
         if config.session_uuid:
@@ -45,6 +46,7 @@ class TestBase(unittest.TestCase):
         self.sg._connection = self.mock_conn
         self.sg._get_connection = mock.Mock(return_value=self.mock_conn)
         
+        self.is_mock = True
         return
         
     def _mock_http(self, data, headers=None, status=None):
@@ -77,6 +79,8 @@ class TestBase(unittest.TestCase):
         #create a new mock to reset call list etc.
         self._setup_mock()
         self.sg._http_request.return_value = (status, resp_headers, data)
+        
+        self.is_mock = True
         return
     
     def _assert_http_method(self, method, params, check_auth=True):

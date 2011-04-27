@@ -134,6 +134,7 @@ class _Config(object):
         self.api_path = None
         self.proxy_server = None
         self.proxy_port = None
+        self.session_token = None
         
 class Shotgun(object):
     """Shotgun Client Connection"""
@@ -701,23 +702,19 @@ class Shotgun(object):
         return attachment
 
     def _get_session_token(self):
-        """
-        Hack to authenticate in order to download protected content
+        """Hack to authenticate in order to download protected content
         like Attachments
         """
-        # TODO: HACK: how do we get this ?
-        if self.config.session_uuid:
-            return self.config.session_uuid
+        if self.config.session_token:
+            return self.config.session_token
         
-        raise RuntimeError("TODO How to get the uuid?")
+        rv = self._call_rpc("get_session_token", None)
+        session_token = (rv or {}).get("session_id")
+        if not session_token:
+            raise RuntimeError("Could not extract session_id from %s", rv)
         
-        # HACK: use API2 to get token for now until we better resolve how 
-        # we manage Attachments in general
-        #         
-        #         api2_url = "%s/%s/" % (self.base_url, 'api2')
-        #             conn = ServerProxy(api2_url)
-        #             self.sid = conn.getSessionToken([self.script_name, self.api_key])['session_id']
-        #         return self.sid
+        self.config.session_token = session_token
+        return self.config.session_token
         
     # Deprecated methods from old wrapper
     def schema(self, entity_type):
