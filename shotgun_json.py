@@ -163,6 +163,7 @@ class Shotgun(object):
         :param convert_datetimes_to_utc: If True date time values are 
         converted from local time to UTC time before been sent to the server. 
         Datetimes received from the server are converted back to local time. 
+        If False the client should use UTC date time values.
         Default is True.
         
         :param http_proxy: Optional, URL for the http proxy server, of the
@@ -659,8 +660,11 @@ class Shotgun(object):
         return id
     
     def download_attachment(self, attachment_id):
-        """Gets session authentication and returns binary content of 
-        Attachment data
+        """Gets the returns binary content of the specified attachment.
+        
+        :param attachment_id: id of the attachment to get. 
+        
+        :returns: binary data as a string
         """
         
         sid = self._get_session_token()
