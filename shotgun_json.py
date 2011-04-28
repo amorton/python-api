@@ -449,6 +449,75 @@ class Shotgun(object):
         }
 
         return self._call_rpc("revive", params)
+
+    def batch(self, requests):
+        """Make a batch request  of several create, update and delete calls. 
+
+        All requests are performed within a transaction, so either all will 
+        complete or none will.
+        
+        :param requests: A list of dict's of the form which have a 
+            request_type key and also specifies:
+            - create: entity_type, data dict of fields to set
+            - update: entity_type, entity_id, data dict of fields to set
+            - delete: entity_type and entity_id
+        
+        :returns: A list of values for each operation, create and update 
+        requests return a dict of the fields updated. Delete requests 
+        return True if the entity was deleted.  
+        """
+
+        if not isinstance(requests, list):
+            raise ShotgunError("batch() expects a list.  Instead was sent "\
+                "a %s" % type(requests))
+
+        calls = []
+
+        def _required_keys(message, required_keys, data):
+            if set(required_keys) - set(data.keys()):
+                raise ShotgunError("%s missing required key: %s. "\
+                    "Value was: %s." % (message, ", ".join(missing), data))
+
+        for req in requests:
+            _required_keys("Batched request", ['request_type','entity_type'], 
+                req)
+
+            if req["request_type"] == "create":
+                _required_keys("Batched create request", ['data'], req)
+
+                calls.append({
+                    "request_type" : "create",
+                    "type" : req["entity_type"],
+                    "fields" : self._dict_to_list(req["data"]), 
+                    "return_fields" : req.get("return_fields") or["id"]
+                })
+                
+            elif req["request_type"] == "update":
+                _required_keys("Batched update request", ['entity_id','data'],
+                    req)
+
+                calls.append({
+                    "request_type" : "update",
+                    "type" : req["entity_type"],
+                    "id" : req["entity_id"],
+                    "fields" : self._dict_to_list(req["data"]), 
+                })
+
+            elif req["request_type"] == "delete":
+                _required_keys("Batched delete request", ['entity_id'], req)
+
+                calls.append({
+                    "request_type" : "delete",
+                    "type" : req["entity_type"],
+                    "id" : req["entity_id"],
+                })
+            
+            else:
+                raise ShotgunError("Invalid request_type '%s' for batch" % (
+                    req["request_type"]))
+
+        records = self._call_rpc("batch", calls)
+        return self._parse_records(records)
         
     def schema_entity_read(self):
         """Gets all active entities defined in the schema. 

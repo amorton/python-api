@@ -10,7 +10,7 @@ For more details see the test_client.py file.
 # If True the api tests are run without connecting to the shotgun server 
 # (you still need to provide a server_url below). If False the tests will 
 # connect to the server and modify data.
-mock = False
+mock = True
 
 
 # Full url to the Shotgun server server

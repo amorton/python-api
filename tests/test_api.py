@@ -76,6 +76,63 @@ class TestShotgunApi(base.TestBase):
         
         return
 
+    def test_batch(self):
+        """Batched create, update, delete"""
+        
+        requests = [
+        {
+            "request_type" : "create",
+            "entity_type" : "Shot",
+            "data": {
+                "code" : "New Shot 5", 
+                "project" : {'id': config.PROJECT_ID, 'type': 'Project'}
+            }
+        },
+        {
+            "request_type" : "update",
+            "entity_type" : "Shot",
+            "entity_id" : config.SHOT_ID , 
+            "data" : {
+                "code" : "Changed 1"
+            }
+        }]
+        
+        self._mock_http({
+            "results" : [ 
+                {
+                    "code" : "New Shot 5",
+                    "project" : {
+                        "name" : "Demo Project",
+                        "type" : "Project",
+                        "id" : 4
+                    },
+                    "type" : "Shot",
+                    "id" : 870
+                },
+                {
+                    "code" : "Changed 1", 
+                    "type" : "Shot",
+                    "id" : 2
+                }]
+        })
+        new_shot, updated_shot = self.sg.batch(requests)
+        
+        self.assertEqual(config.SHOT_ID, updated_shot["id"])
+        self.assertTrue(new_shot.get("id"))
+        
+        new_shot_id = new_shot["id"]
+        requests = [
+        {
+            "request_type" : "delete",
+            "entity_type" : "Shot",
+            "entity_id" : new_shot_id
+        }]
+        
+        self._mock_http({"results" : [True]})
+        result = self.sg.batch(requests)[0]
+        self.assertEqual(True, result)
+        return
+        
     def test_create_update_delete(self):
         """Called create, update, delete, revive"""
         
@@ -215,7 +272,7 @@ class TestShotgunApi(base.TestBase):
         orig_file = open(path, "rb").read()
         self.assertEqual(orig_file, attach_file)
         return
-        
+
     def test_deprecated_functions(self):
         """Deprecated functions raise errors"""
         self.assertRaises(api.ShotgunError, self.sg.schema, "foo")
