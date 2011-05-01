@@ -1163,11 +1163,7 @@ class Shotgun(object):
                     and self.client_caps.local_path_field in v:
                     local_path = v[self.client_caps.local_path_field]
                     v['local_path'] = local_path
-                    if local_path:
-                        local_path = local_path.lstrip(os.path.sep)
-                    else:
-                        local_path = ""
-                    v['url'] = "file://%s" % (local_path,)
+                    v['url'] = "file://%s" % (local_path or "",)
         
         return records
     

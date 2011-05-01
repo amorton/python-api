@@ -359,7 +359,7 @@ class TestShotgunClient(base.TestBase):
         self.assertEqual(url, modified["image"], 
             "image path changed to url path")
         self.assertEqual("/foo/bar.jpg", modified["foo"]["local_path"])
-        self.assertEqual("file://foo/bar.jpg", modified["foo"]["url"])
+        self.assertEqual("file:///foo/bar.jpg", modified["foo"]["url"])
         
         return
         
