@@ -2,6 +2,7 @@
 CRUD functions. These tests always use a mock http connection so not not 
 need a live server to run against."""
 
+import base64
 import datetime
 try:
     import simplejson as json
@@ -102,6 +103,32 @@ class TestShotgunClient(base.TestBase):
         self.assertRaises(ValueError, api.Shotgun, "file://foo.com",None,None)
         
         self.assertEqual("/api3/json", self.sg.config.api_path)
+        
+        #support auth details in the url of the form 
+        # user:password@domain
+        sg = api.Shotgun("http://aaron:sekrt@shotgun.com", None, None)
+        expected = "Basic " + base64.encodestring("aaron:sekrt").strip()
+        self.assertEqual(expected, sg.config.authorization)
+        
+        return
+    
+    def test_authorization(self):
+        """Authorization passed to server"""
+        
+        self.sg = api.Shotgun("http://aaron:sekrt@foo.com", "foo", "bar")
+        self._setup_mock()
+        self._mock_http({
+            'version': [2, 4, 0, u'Dev']
+        })
+        
+        self.sg.info()
+        
+        args, _ = self.sg._http_request.call_args
+        verb, path, body, headers = args
+        
+        expected = "Basic " + base64.encodestring("aaron:sekrt").strip()
+        self.assertEqual(expected, headers.get("Authorization"))
+        return
         
     def test_connect_close(self):
         """Connection is closed and opened."""

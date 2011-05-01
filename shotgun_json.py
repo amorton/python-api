@@ -4,6 +4,7 @@
 # needed for httplib2, future imports must be first
 from __future__ import generators
 
+import base64
 import cookielib    # used for attachment upload
 import cStringIO    # used for attachment upload
 import datetime
@@ -135,6 +136,7 @@ class _Config(object):
         self.proxy_server = None
         self.proxy_port = None
         self.session_token = None
+        self.authorization = None
         
 class Shotgun(object):
     """Shotgun Client Connection"""
@@ -182,11 +184,19 @@ class Shotgun(object):
         self.config.scheme, self.config.server, api_base, _, _ = \
             urlparse.urlsplit(base_url)
         if self.config.scheme not in ("http", "https"):
-            raise ValueError("base_url must use http or https got %s" % 
+            raise ValueError("base_url must use http or https got '%s'" % 
                 base_url)
         self.config.api_path = urlparse.urljoin(urlparse.urljoin(
             api_base or "/", self.config.api_ver + "/"), "json")
         
+        # if the service contains user information strip it out 
+        # copied from the xmlrpclib which turned the user:password into 
+        # and auth header
+        auth, self.config.server = urllib.splituser(self.config.server)
+        if auth:
+            auth = base64.encodestring(urllib.unquote(auth))
+            self.config.authorization = "Basic " + auth.strip()
+
         if http_proxy:
             _, proxy_netloc, _, _, _ = urlparse.urlsplit(http_proxy)
             self.config.proxy_server, _, proxy_port = proxy_netloc.partition(
@@ -885,6 +895,9 @@ class Shotgun(object):
         req_headers = {
             "user-agent" : "shotgun-json",
         }
+        if self.config.authorization:
+            req_headers["Authorization"] = self.config.authorization
+
         req_headers.update(headers or {})
         body = body or None
         
