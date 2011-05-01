@@ -28,4 +28,4 @@ PROJECT_ID = 4
 HUMAN_ID = 39
 ASSET_ID = 3
 VERSION_ID = 1
-    
+SHOT_ID = 2    
