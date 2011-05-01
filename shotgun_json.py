@@ -1356,11 +1356,14 @@ sg_timezone = SgTimezone()
 
 # ----------------------------------------------------------------------------
 # Included external modules, left as is or otherwise noted here an in the code
+# search for "amorton"
 #
 # - httplib2: contents from __init__.py and iri2uri.py
 #       - removed reference to the socks module, it is included directly. 
 #       - set TCP_NODELAY on the sockets see 
 #           http://code.google.com/p/httplib2/issues/detail?id=28
+#       - patch to handle socket not opening applied 
+#       see http://code.google.com/p/httplib2/source/detail?r=0cff83696d
 # - socks module from http://socksipy.sourceforge.net/
 #
 
@@ -2319,6 +2322,19 @@ the same interface as FileCache."""
             except (socket.error, httplib.HTTPException):
                 # Just because the server closed the connection doesn't apparently mean
                 # that the server didn't send a response.
+                # amorton: patch from http://code.google.com/p/httplib2/source/detail?r=0cff83696d
+                if conn.sock is None:
+                    if i == 0:
+                        conn.close()
+                        conn.connect()
+                        continue
+                    else:
+                        conn.close()
+                        raise
+                if i == 0:
+                    conn.close()
+                    conn.connect()
+                    continue
                 pass
             try:
                 response = conn.getresponse()
