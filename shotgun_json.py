@@ -36,6 +36,9 @@ class ShotgunError(Exception):
     """Base for all Shotgun API Errors"""
     pass
 
+class Fault(ShotgunError):
+    pass
+    
 # ----------------------------------------------------------------------------
 # API
 
@@ -986,7 +989,7 @@ class Shotgun(object):
         """
         
         if isinstance(sg_response, dict) and sg_response.get("exception"):
-            raise ShotgunError(sg_response.get("message", 
+            raise Fault(sg_response.get("message", 
                 "Unknown Error"))
         return
 

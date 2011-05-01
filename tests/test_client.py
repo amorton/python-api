@@ -84,12 +84,12 @@ class TestShotgunClient(base.TestBase):
             return body["params"][0]
 
         self.sg.set_session_uuid(None)
-        self.assertRaises(api.ShotgunError, self.sg.delete, "FakeType", 1)
+        self.assertRaises(api.Fault, self.sg.delete, "FakeType", 1)
         self.assertTrue("session_uuid" not in auth_args())
         
         my_uuid = '5a1d49b0-0c69-11e0-a24c-003048d17544'
         self.sg.set_session_uuid(my_uuid)
-        self.assertRaises(api.ShotgunError, self.sg.delete, "FakeType", 1)
+        self.assertRaises(api.Fault, self.sg.delete, "FakeType", 1)
         self.assertEqual(my_uuid, auth_args()["session_uuid"])
         return
         
@@ -190,11 +190,11 @@ class TestShotgunClient(base.TestBase):
             "exception":True
         })
         
-        self.assertRaises(api.ShotgunError, self.sg.info)
+        self.assertRaises(api.Fault, self.sg.info)
         
         try:
             self.sg.info()
-        except api.ShotgunError, e:
+        except api.Fault, e:
             self.assertEqual("Go BANG", str(e))
             
     def test_call_rpc(self):
