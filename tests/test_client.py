@@ -46,9 +46,10 @@ class TestShotgunClient(base.TestBase):
 
         
         #has paging is tested else where.
-        self._mock_http({
+        server_info = {
             "version" : [9,9,9]
-        })
+        }
+        self._mock_http(server_info)
         self.assertTrue(self.sg.server_caps is not None)
         self.assertFalse(self.sg.server_caps.is_dev)
         self.assertEqual((9,9,9), self.sg.server_caps.version)
@@ -56,6 +57,7 @@ class TestShotgunClient(base.TestBase):
         self.assertTrue(self.sg.server_caps.has_paging)
         self.assertTrue(str(self.sg.server_caps).startswith(
             "ServerCapabilities"))
+        self.assertEqual(server_info, self.sg.server_info)
 
         self.sg._server_caps = None
         self._mock_http({

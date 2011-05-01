@@ -54,6 +54,7 @@ class ServerCapabilities(object):
         #Server host name
         self.host = host
         meta = meta or {}
+        self.server_info = meta
         
         #Version from server is major.minor.rev or major.minor.rev."Dev"
         #Store version as triple and check dev flag
@@ -209,6 +210,10 @@ class Shotgun(object):
     # ========================================================================
     # API Functions 
     
+    @property
+    def server_info(self):
+        return self.server_caps.server_info
+        
     @property
     def server_caps(self):
         """
