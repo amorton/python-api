@@ -72,9 +72,22 @@ class ServerCapabilities(object):
                 self.is_dev = False
             self.version = tuple(self.version[:3])
         
+        self._ensure_json_supported()
+        
         #Flag if this server supports paging
         self.has_paging = self._is_paging(self.version)
     
+    def _ensure_json_supported(self):
+        """Checks the server version supports the JSON api, raises an 
+        exception if it does not.
+        
+        :raises ShotgunError: The current server version does not support json
+        """
+        
+        if self.version != (0,0,0) and self.version < (2,4,0):
+            raise ShotgunError("JSON API requires server version 2.4 or "\
+                "higher, server is %s" % (self.version,))
+        return 
     def _is_paging(self, version):
         """Determines if the server version supports paging.
         

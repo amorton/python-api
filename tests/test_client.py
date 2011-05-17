@@ -67,6 +67,23 @@ class TestShotgunClient(base.TestBase):
         
         return
     
+    def test_server_version(self):
+        """Server supports json API"""
+        
+        sc = api.ServerCapabilities("foo", {})
+        
+        sc.version = (2,3,99)
+        self.assertRaises(api.ShotgunError, sc._ensure_json_supported)
+        self.assertRaises(api.ShotgunError, api.ServerCapabilities, "foo", 
+            {"version" : (2,2,0)})
+        sc.version = (2,4,0)
+        sc._ensure_json_supported()
+        
+        sc.version = (2,5,0)
+        sc._ensure_json_supported()
+        
+        return
+        
     def test_session_uuid(self):
         """Session UUID is included in request"""
         
