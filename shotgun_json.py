@@ -84,7 +84,7 @@ class ServerCapabilities(object):
         :raises ShotgunError: The current server version does not support json
         """
         
-        if self.version != (0,0,0) and self.version < (2,4,0):
+        if not self.version or self.version < (2,4,0):
             raise ShotgunError("JSON API requires server version 2.4 or "\
                 "higher, server is %s" % (self.version,))
         return 

@@ -50,6 +50,8 @@ class TestShotgunClient(base.TestBase):
             "version" : [9,9,9]
         }
         self._mock_http(server_info)
+        # ensrue the server caps is re-read
+        self.sg._server_caps = None
         self.assertTrue(self.sg.server_caps is not None)
         self.assertFalse(self.sg.server_caps.is_dev)
         self.assertEqual((9,9,9), self.sg.server_caps.version)
@@ -59,10 +61,11 @@ class TestShotgunClient(base.TestBase):
             "ServerCapabilities"))
         self.assertEqual(server_info, self.sg.server_info)
 
-        self.sg._server_caps = None
+        
         self._mock_http({
             "version" : [9,9,9, "Dev"]
         })
+        self.sg._server_caps = None
         self.assertTrue(self.sg.server_caps.is_dev)
         
         return
@@ -70,12 +73,16 @@ class TestShotgunClient(base.TestBase):
     def test_server_version(self):
         """Server supports json API"""
         
-        sc = api.ServerCapabilities("foo", {})
+        sc = api.ServerCapabilities("foo", {"version" : (2,4,0)})
         
         sc.version = (2,3,99)
         self.assertRaises(api.ShotgunError, sc._ensure_json_supported)
         self.assertRaises(api.ShotgunError, api.ServerCapabilities, "foo", 
             {"version" : (2,2,0)})
+            
+        sc.version = (0,0,0)
+        self.assertRaises(api.ShotgunError, sc._ensure_json_supported)
+        
         sc.version = (2,4,0)
         sc._ensure_json_supported()
         
@@ -162,7 +169,8 @@ class TestShotgunClient(base.TestBase):
     def test_has_paging(self):
         """Server paging detected"""
         
-        sc = api.ServerCapabilities("foo", {})
+        #tricky because we now only support version > 2.4
+        sc = api.ServerCapabilities("foo", {"version" : (2,4,0)})
         
         self.assertFalse(sc._is_paging((0,0,0)), 
             "no version has no paging")

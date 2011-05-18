@@ -46,6 +46,9 @@ class TestBase(unittest.TestCase):
         self.sg._connection = self.mock_conn
         self.sg._get_connection = mock.Mock(return_value=self.mock_conn)
         
+        #create the server caps directly to say we have the correct version
+        self.sg._server_caps = api.ServerCapabilities(self.sg.config.server, 
+            {"version" : [2,4,0]})
         self.is_mock = True
         return
         
