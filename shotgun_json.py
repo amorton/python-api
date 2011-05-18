@@ -56,7 +56,10 @@ class ServerCapabilities(object):
         
         #Server host name
         self.host = host
-        meta = meta or {}
+        try:
+            meta = dict(meta)
+        except ValueError:
+            meta = {}
         self.server_info = meta
         
         #Version from server is major.minor.rev or major.minor.rev."Dev"
@@ -222,7 +225,10 @@ class Shotgun(object):
             
         self.client_caps = ClientCapabilities()
         self._server_caps = None
-
+        #test to ensure the the server supports the json API
+        #call to server will only be made once and will raise error
+        sc = self.server_caps
+        
     # ========================================================================
     # API Functions 
     
